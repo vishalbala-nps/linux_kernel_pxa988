@@ -374,4 +374,11 @@ static inline int of_property_read_u32(const struct device_node *np,
 	return of_property_read_u32_array(np, propname, out_value, 1);
 }
 
+extern struct device_node *of_get_next_available_child(
+	const struct device_node *node, struct device_node *prev);
+
+#define for_each_available_child_of_node(parent, child) \
+	for (child = of_get_next_available_child(parent, NULL); child != NULL; \
+	     child = of_get_next_available_child(parent, child))
+	     
 #endif /* _LINUX_OF_H */

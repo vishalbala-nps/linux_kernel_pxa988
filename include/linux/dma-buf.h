@@ -98,6 +98,9 @@ struct dma_buf_ops {
 	void (*kunmap)(struct dma_buf *, unsigned long, void *);
 
 	int (*mmap)(struct dma_buf *, struct vm_area_struct *vma);
+
+	void *(*vmap)(struct dma_buf *);
+	void (*vunmap)(struct dma_buf *, void *vaddr);
 };
 
 /**
@@ -113,8 +116,10 @@ struct dma_buf {
 	struct file *file;
 	struct list_head attachments;
 	const struct dma_buf_ops *ops;
-	/* mutex to serialize list manipulation and attach/detach */
+	/* mutex to serialize list manipulation, attach/detach and vmap/unmap */
 	struct mutex lock;
+	unsigned vmapping_counter;
+	void *vmap_ptr;
 	void *priv;
 };
 
@@ -265,5 +270,7 @@ static inline int dma_buf_mmap(struct dma_buf *dmabuf,
 	return -ENODEV;
 }
 #endif /* CONFIG_DMA_SHARED_BUFFER */
+
+void dma_buf_vunmap(struct dma_buf *, void *vaddr);
 
 #endif /* __DMA_BUF_H__ */

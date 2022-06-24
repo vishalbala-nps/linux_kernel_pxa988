@@ -136,7 +136,7 @@ obj-$(CONFIG_VIRT_DRIVERS)	+= virt/
 obj-$(CONFIG_HYPERV)		+= hv/
 
 obj-$(CONFIG_PM_DEVFREQ)	+= devfreq/
-# obj-y				+= marvell/
+obj-y						+= marvell/
 
 obj-$(CONFIG_SENSOR_DIR)	+= sensor/
 

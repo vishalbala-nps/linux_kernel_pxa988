@@ -646,6 +646,92 @@ void drm_gem_vm_close(struct vm_area_struct *vma)
 EXPORT_SYMBOL(drm_gem_vm_close);
 
 
+struct page **drm_gem_get_pages(struct drm_gem_object *obj)
+{
+	struct inode *inode;
+	struct address_space *mapping;
+	struct page *p, **pages;
+	int i, npages;
+
+	/* This is the shared memory object that backs the GEM resource */
+	inode = (obj->filp)->f_inode;
+	mapping = inode->i_mapping;
+
+	/* We already BUG_ON() for non-page-aligned sizes in
+	 * drm_gem_object_init(), so we should never hit this unless
+	 * driver author is doing something really wrong:
+	 */
+	WARN_ON((obj->size & (PAGE_SIZE - 1)) != 0);
+
+	npages = obj->size >> PAGE_SHIFT;
+
+	pages = drm_malloc_ab(npages, sizeof(struct page *));
+	if (pages == NULL)
+		return ERR_PTR(-ENOMEM);
+
+	for (i = 0; i < npages; i++) {
+		p = shmem_read_mapping_page(mapping, i);
+		if (IS_ERR(p))
+			goto fail;
+		pages[i] = p;
+
+		/* Make sure shmem keeps __GFP_DMA32 allocated pages in the
+		 * correct region during swapin. Note that this requires
+		 * __GFP_DMA32 to be set in mapping_gfp_mask(inode->i_mapping)
+		 * so shmem can relocate pages during swapin if required.
+		 */
+		BUG_ON((mapping_gfp_mask(mapping) & __GFP_DMA32) &&
+				(page_to_pfn(p) >= 0x00100000UL));
+	}
+
+	return pages;
+
+fail:
+	while (i--)
+		page_cache_release(pages[i]);
+
+	drm_free_large(pages);
+	return ERR_CAST(p);
+}
+EXPORT_SYMBOL(drm_gem_get_pages);
+
+/**
+ * drm_gem_put_pages - helper to free backing pages for a GEM object
+ * @obj: obj in question
+ * @pages: pages to free
+ * @dirty: if true, pages will be marked as dirty
+ * @accessed: if true, the pages will be marked as accessed
+ */
+void drm_gem_put_pages(struct drm_gem_object *obj, struct page **pages,
+		bool dirty, bool accessed)
+{
+	int i, npages;
+
+	/* We already BUG_ON() for non-page-aligned sizes in
+	 * drm_gem_object_init(), so we should never hit this unless
+	 * driver author is doing something really wrong:
+	 */
+	WARN_ON((obj->size & (PAGE_SIZE - 1)) != 0);
+
+	npages = obj->size >> PAGE_SHIFT;
+
+	for (i = 0; i < npages; i++) {
+		if (dirty)
+			set_page_dirty(pages[i]);
+
+		if (accessed)
+			mark_page_accessed(pages[i]);
+
+		/* Undo the reference we took when populating the table */
+		page_cache_release(pages[i]);
+	}
+
+	drm_free_large(pages);
+}
+EXPORT_SYMBOL(drm_gem_put_pages);
+
+
+
 /**
  * drm_gem_mmap - memory map routine for GEM objects
  * @filp: DRM file pointer

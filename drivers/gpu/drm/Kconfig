@@ -185,6 +185,8 @@ config DRM_VIVANTE
 	help
 	  Choose this option if you have a Vivante graphics card.
 	  If M is selected, the module will be called vivante.
+	  
+
 
 source "drivers/gpu/drm/exynos/Kconfig"
 

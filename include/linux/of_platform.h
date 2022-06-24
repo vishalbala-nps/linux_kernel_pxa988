@@ -105,7 +105,7 @@ static inline int of_platform_populate(struct device_node *root,
 					const struct of_dev_auxdata *lookup,
 					struct device *parent)
 {
-	return -ENODEV;
+	return -19; //#define	ENODEV		19	/* No such device */
 }
 #endif /* !CONFIG_OF_ADDRESS */
 

@@ -24,6 +24,12 @@
 #include <linux/slab.h>
 #include <linux/proc_fs.h>
 
+#include <linux/of_fdt.h>
+#include <linux/of_platform.h>
+#include <linux/mm.h>
+#include <linux/of_reserved_mem.h>
+
+
 /**
  * struct alias_prop - Alias property in 'aliases' node
  * @link:	List node to link the structure in aliases_lookup list
@@ -162,6 +168,25 @@ void of_node_put(struct device_node *node)
 }
 EXPORT_SYMBOL(of_node_put);
 #endif /* CONFIG_OF_DYNAMIC */
+
+static struct property *__of_find_property(const struct device_node *np,
+					   const char *name, int *lenp)
+{
+	struct property *pp;
+
+	if (!np)
+		return NULL;
+
+	for (pp = np->properties; pp; pp = pp->next) {
+		if (of_prop_cmp(pp->name, name) == 0) {
+			if (lenp)
+				*lenp = pp->length;
+			break;
+		}
+	}
+
+	return pp;
+}
 
 struct property *of_find_property(const struct device_node *np,
 				  const char *name,
@@ -362,6 +387,82 @@ struct device_node *of_get_next_child(const struct device_node *node,
 	return next;
 }
 EXPORT_SYMBOL(of_get_next_child);
+
+
+
+
+/*
+ * Find a property with a given name for a given node
+ * and return the value.
+ */
+const void *__of_get_property(const struct device_node *np,
+			      const char *name, int *lenp)
+{
+	struct property *pp = __of_find_property(np, name, lenp);
+
+	return pp ? pp->value : NULL;
+}
+
+
+/**
+ *  __of_device_is_available - check if a device is available for use
+ *
+ *  @device: Node to check for availability, with locks already held
+ *
+ *  Returns true if the status property is absent or set to "okay" or "ok",
+ *  false otherwise
+ */
+static bool __of_device_is_available(const struct device_node *device)
+{
+	const char *status;
+	int statlen;
+
+	if (!device)
+		return false;
+
+	status = __of_get_property(device, "status", &statlen);
+	if (status == NULL)
+		return true;
+
+	if (statlen > 0) {
+		if (!strcmp(status, "okay") || !strcmp(status, "ok"))
+			return true;
+	}
+
+	return false;
+}
+
+
+/**
+ *	of_get_next_available_child - Find the next available child node
+ *	@node:	parent node
+ *	@prev:	previous child of the parent node, or NULL to get first
+ *
+ *      This function is like of_get_next_child(), except that it
+ *      automatically skips any disabled nodes (i.e. status = "disabled").
+ */
+struct device_node *of_get_next_available_child(const struct device_node *node,
+	struct device_node *prev)
+{
+	struct device_node *next;
+	unsigned long flags;
+
+	if (!node)
+		return NULL;
+
+	raw_spin_lock_irqsave(&devtree_lock, flags);
+	next = prev ? prev->sibling : node->child;
+	for (; next; next = next->sibling) {
+		if (!__of_device_is_available(next))
+			continue;
+		if (of_node_get(next))
+			break;
+	}
+	of_node_put(prev);
+	raw_spin_unlock_irqrestore(&devtree_lock, flags);
+	return next;
+}
+EXPORT_SYMBOL(of_get_next_available_child);
 
 /**
  *	of_find_node_by_path - Find a node matching a full OF path

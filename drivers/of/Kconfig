@@ -78,6 +78,12 @@ config OF_MDIO
 	depends on PHYLIB
 	help
 	  OpenFirmware MDIO bus (Ethernet PHY) accessors
+	  
+config OF_RESERVED_MEM
+	depends on OF_FLATTREE && (DMA_CMA || (HAVE_GENERIC_DMA_COHERENT && HAVE_MEMBLOCK))
+	def_bool y
+	help
+	  Initialization code for DMA reserved memory	  
 
 config OF_PCI
 	def_tristate PCI

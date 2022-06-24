@@ -77,12 +77,19 @@ struct page *dma_alloc_from_contiguous(struct device *dev, int count,
 bool dma_release_from_contiguous(struct device *dev, struct page *pages,
 				 int count);
 
+static inline void dma_contiguous_set_default(struct cma *cma)
+{
+	dma_contiguous_default_area = cma;
+}
+
 #else
 
 #define MAX_CMA_AREAS	(0)
 
 static inline void dma_contiguous_reserve(phys_addr_t limit) { }
 #define cma_available (0)
+
+static inline void dma_contiguous_set_default(struct cma *cma) { }
 
 static inline
 int dma_declare_contiguous(struct device *dev, unsigned long size,

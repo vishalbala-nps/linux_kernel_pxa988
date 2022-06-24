@@ -150,11 +150,24 @@
 #endif
 
 
+#ifdef CONFIG_OF_RESERVED_MEM
+#define RESERVEDMEM_OF_TABLES()				\
+	. = ALIGN(8);					\
+	VMLINUX_SYMBOL(__reservedmem_of_table) = .;	\
+	*(__reservedmem_of_table)			\
+	*(__reservedmem_of_table_end)
+#else
+#define RESERVEDMEM_OF_TABLES()
+#endif
+
+
+
 #define KERNEL_DTB()							\
 	STRUCT_ALIGN();							\
 	VMLINUX_SYMBOL(__dtb_start) = .;				\
 	*(.dtb.init.rodata)						\
-	VMLINUX_SYMBOL(__dtb_end) = .;
+	VMLINUX_SYMBOL(__dtb_end) = .;			\
+	RESERVEDMEM_OF_TABLES()
 
 /* .data section */
 #define DATA_DATA							\
@@ -803,3 +816,4 @@
 	BSS(bss_align)							\
 	. = ALIGN(stop_align);						\
 	VMLINUX_SYMBOL(__bss_stop) = .;
+	

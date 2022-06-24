@@ -986,6 +986,7 @@ struct file {
 #define f_dentry	f_path.dentry
 #define f_vfsmnt	f_path.mnt
 	const struct file_operations	*f_op;
+	struct inode		*f_inode;	/* cached value */
 
 	/*
 	 * Protects f_ep_links, f_flags, f_pos vs i_size in lseek SEEK_CUR.

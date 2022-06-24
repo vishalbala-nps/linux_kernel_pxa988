@@ -143,6 +143,16 @@ typedef unsigned long sector_t;
 typedef unsigned long blkcnt_t;
 #endif
 
+
+
+#ifdef CONFIG_PHYS_ADDR_T_64BIT
+typedef u64 phys_addr_t;
+#else
+typedef u32 phys_addr_t;
+#endif
+
+typedef phys_addr_t resource_size_t;
+
 /*
  * The type of an index into the pagecache.  Use a #define so asm/types.h
  * can override it.

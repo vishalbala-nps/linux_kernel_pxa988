@@ -18,6 +18,8 @@
 /** @category input devices*/
 void goya_input_init(void);
 
+#include <linux/of_reserved_mem.h>
+
 #if defined(CONFIG_BATTERY_SAMSUNG)
 #include <linux/battery/sec_charging_common.h>
 extern int current_cable_type;

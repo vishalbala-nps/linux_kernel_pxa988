@@ -205,6 +205,7 @@ const __be32 *of_get_pci_address(struct device_node *dev, int bar_no, u64 *size,
 }
 EXPORT_SYMBOL(of_get_pci_address);
 
+
 int of_pci_address_to_resource(struct device_node *dev, int bar,
 			       struct resource *r)
 {
@@ -219,6 +220,25 @@ int of_pci_address_to_resource(struct device_node *dev, int bar,
 }
 EXPORT_SYMBOL_GPL(of_pci_address_to_resource);
 #endif /* CONFIG_PCI */
+
+bool of_can_translate_address(struct device_node *dev)
+{
+	struct device_node *parent;
+	struct of_bus *bus;
+	int na, ns;
+
+	parent = of_get_parent(dev);
+	if (parent == NULL)
+		return false;
+
+	bus = of_match_bus(parent);
+	bus->count_cells(dev, &na, &ns);
+
+	of_node_put(parent);
+
+	return OF_CHECK_COUNTS(na, ns);
+}
+EXPORT_SYMBOL(of_can_translate_address);
 
 /*
  * ISA bus specific translator
